@@ -5,25 +5,30 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.function.Supplier;
 
+import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
-
+import bgu.spl.net.srv.Connections;
 import bgu.spl.net.srv.Server;
 
 public abstract class StompBaseServer<T> implements Server<T> {
     private final int port;
     private final Supplier<StompMessagingProtocol<T>> protocolFactory;
-    private final Supplier<StompMessageEncoderDecoder<T>> encdecFactory;
+    private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
+    private Connections<T> connections;
+    private int lastConnectionId;
 
     public StompBaseServer(
             int port,
             Supplier<StompMessagingProtocol<T>> protocolFactory,
-            Supplier<StompMessageEncoderDecoder<T>> encdecFactory) {
+            Supplier<MessageEncoderDecoder<T>> encdecFactory) {
 
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
 		this.sock = null;
+        this.connections = new ConnectionsImpl<>();
+        this.lastConnectionId = 0;
     }
 
     @Override
@@ -41,6 +46,11 @@ public abstract class StompBaseServer<T> implements Server<T> {
                         clientSock,
                         encdecFactory.get(),
                         protocolFactory.get());
+
+                handler.startProtocol(lastConnectionId, connections);
+                connections.addClient(lastConnectionId, handler);
+
+                lastConnectionId++;
 
                 execute(handler);
             }

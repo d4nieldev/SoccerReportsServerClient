@@ -5,21 +5,27 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
+import bgu.spl.net.srv.Connections;
 
 public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHandler<T> {
     private final StompMessagingProtocol<T> protocol;
-    private final StompMessageEncoderDecoder<T> encdec;
+    private final MessageEncoderDecoder<T> encdec;
     private final Socket sock;
     private BufferedInputStream in;
     private BufferedOutputStream out;
     private volatile boolean connected = true;
 
-    public StompBlockingConnectionHandler(Socket sock, StompMessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol) {
+    public StompBlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, StompMessagingProtocol<T> protocol) {
         this.sock = sock;
         this.encdec = reader;
         this.protocol = protocol;
+    }
+
+    public void startProtocol(int connectionId, Connections<T> connections){
+        protocol.start(connectionId, connections);
     }
 
     @Override
@@ -30,9 +36,12 @@ public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHa
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
 
+            
+
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
+                    // the process method will send the message to the client or clients
                     protocol.process(nextMessage);
                 }
             }

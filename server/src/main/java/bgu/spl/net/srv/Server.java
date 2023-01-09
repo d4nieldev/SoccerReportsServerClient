@@ -42,7 +42,7 @@ public interface Server<T> extends Closeable {
     public static <T> Server<T>  stompThreadPerClient(
             int port,
             Supplier<StompMessagingProtocol<T> > protocolFactory,
-            Supplier<StompMessageEncoderDecoder<T> > encoderDecoderFactory) {
+            Supplier<MessageEncoderDecoder<T> > encoderDecoderFactory) {
 
         return new StompBaseServer<T>(port, protocolFactory, encoderDecoderFactory) {
             @Override
