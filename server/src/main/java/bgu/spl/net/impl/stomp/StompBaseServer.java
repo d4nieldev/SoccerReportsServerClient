@@ -9,17 +9,17 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.function.Supplier;
 
-public abstract class BaseServer<T> implements Server<T> {
+public abstract class StompBaseServer<T> implements Server<T> {
 
     private final int port;
-    private final Supplier<MessagingProtocol<T>> protocolFactory;
-    private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
+    private final Supplier<StompMessagingProtocol<T>> protocolFactory;
+    private final Supplier<StompMessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
 
-    public BaseServer(
+    public StompBaseServer(
             int port,
-            Supplier<MessagingProtocol<T>> protocolFactory,
-            Supplier<MessageEncoderDecoder<T>> encdecFactory) {
+            Supplier<StompMessagingProtocol<T>> protocolFactory,
+            Supplier<StompMessageEncoderDecoder<T>> encdecFactory) {
 
         this.port = port;
         this.protocolFactory = protocolFactory;
