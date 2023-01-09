@@ -1,16 +1,15 @@
-package bgu.spl.net.srv;
-
-import bgu.spl.net.api.MessageEncoderDecoder;
-import bgu.spl.net.api.MessagingProtocol;
-import bgu.spl.net.api.StompMessagingProtocol;
+package bgu.spl.net.impl.stomp;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.function.Supplier;
 
-public abstract class StompBaseServer<T> implements Server<T> {
+import bgu.spl.net.api.StompMessagingProtocol;
 
+import bgu.spl.net.srv.Server;
+
+public abstract class StompBaseServer<T> implements Server<T> {
     private final int port;
     private final Supplier<StompMessagingProtocol<T>> protocolFactory;
     private final Supplier<StompMessageEncoderDecoder<T>> encdecFactory;
@@ -29,7 +28,6 @@ public abstract class StompBaseServer<T> implements Server<T> {
 
     @Override
     public void serve() {
-
         try (ServerSocket serverSock = new ServerSocket(port)) {
 			System.out.println("Server started");
 
@@ -39,7 +37,7 @@ public abstract class StompBaseServer<T> implements Server<T> {
 
                 Socket clientSock = serverSock.accept();
 
-                BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
+                StompBlockingConnectionHandler<T> handler = new StompBlockingConnectionHandler<>(
                         clientSock,
                         encdecFactory.get(),
                         protocolFactory.get());
@@ -50,6 +48,7 @@ public abstract class StompBaseServer<T> implements Server<T> {
         }
 
         System.out.println("server closed!!!");
+        
     }
 
     @Override
@@ -58,6 +57,6 @@ public abstract class StompBaseServer<T> implements Server<T> {
 			sock.close();
     }
 
-    protected abstract void execute(BlockingConnectionHandler<T>  handler);
-
+    protected abstract void execute(StompBlockingConnectionHandler<T>  handler);
+    
 }
