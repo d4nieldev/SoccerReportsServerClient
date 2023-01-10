@@ -22,7 +22,7 @@ int main (int argc, char *argv[]) {
     while (1) {
         const short bufsize = 1024;
         char buf[bufsize];
-        std::cin.getline(buf, bufsize);
+        std::cin.getline(buf, bufsize); //?
 		std::string line(buf);
 		int len=line.length();
         if (!connectionHandler.sendLine(line)) {
@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
         std::string answer;
         // Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
         // We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
-        if (!connectionHandler.getLine(answer)) {
+        if (!connectionHandler.getFrame(answer)) {
             std::cout << "Disconnected. Exiting...\n" << std::endl;
             break;
         }
