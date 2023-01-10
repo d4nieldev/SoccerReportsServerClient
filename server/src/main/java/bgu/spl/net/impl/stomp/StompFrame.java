@@ -9,14 +9,20 @@ public class StompFrame {
 
     public StompFrame(String message)
     {
-        if (message.charAt(message.length() - 1) != '\u0000')
+        if (message.endsWith("\u0000"))
             throw new IllegalArgumentException("Stomp frame must end with " + '\u0000');
         
-        String[] lines = message.split("\n");
+        String pureMessage = "";
+        for (int i = 0; i < message.length() && message.charAt(i) != '\u0000'; i++)
+            pureMessage += message.charAt(i);
+
+        headers = new HashMap<>();
+        
+        String[] lines = pureMessage.split("\n");
         command = lines[0];
 
         int pos = 1;
-        for (pos = 1; pos < lines.length - 1 && !lines[pos].isBlank(); pos++){
+        for (pos = 1; pos < lines.length && !lines[pos].isBlank(); pos++){
             String[] header = lines[pos].split(":");
             headers.put(header[0], header[1]);
         }
@@ -25,9 +31,9 @@ public class StompFrame {
         pos++;
 
         body = "";
-        for (;pos < lines.length - 1; pos++){
+        for (;pos < lines.length; pos++){
             body += lines[pos];
-            if (pos != lines.length - 2)
+            if (pos != lines.length - 1)
                 body += "\n";
         }
     }

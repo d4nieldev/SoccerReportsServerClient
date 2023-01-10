@@ -1,5 +1,6 @@
 package bgu.spl.net.impl.stomp;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,13 +27,14 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public void send(int connectionId, T msg) {
+    public void send(int connectionId, T msg) throws IOException {
         activeClients.get(connectionId).send(msg);
     }
 
     @Override
-    public void send(String channel, T msg) {
-        Data.getInstance().getSubscribers(channel).forEach(conId -> send(conId, msg));
+    public void send(String channel, T msg) throws IOException {
+        for (Integer connectionId : Data.getInstance().getSubscribers(channel))
+            send(connectionId, msg);
     }
 
     @Override

@@ -36,8 +36,6 @@ public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHa
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
 
-            
-
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
@@ -59,7 +57,8 @@ public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHa
     }
 
     @Override
-    public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+    public void send(T msg) throws IOException{
+        out.write(encdec.encode(msg));
+        out.flush();
     }
 }

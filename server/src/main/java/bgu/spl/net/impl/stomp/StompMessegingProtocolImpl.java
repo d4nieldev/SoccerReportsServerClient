@@ -1,5 +1,6 @@
 package bgu.spl.net.impl.stomp;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import bgu.spl.net.api.StompMessagingProtocol;
@@ -21,34 +22,50 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
     public void process(String message) {
         StompFrame frame = new StompFrame(message);
         HashMap<String, String> headers = frame.getHeaders();
-        String errorMsg;
+        boolean error = false;
 
-        switch (frame.getCommand()){
-            case "CONNECT":
-                errorMsg = processConnect(headers);
-            case "SEND":
-                errorMsg = processSend(headers, frame.getBody());
-            case "SUBSCRIBE":
-                errorMsg = processSubscribe(headers);
-            case "UNSUBSCRIBE":
-                errorMsg = processUnSubscribe(headers);
-            case "DISCONNECT":
-                errorMsg = processDisconnect();
-            default:
+        try {
+            String command = frame.getCommand();
+            if (command.equals("CONNECT"))
+                processConnect(headers);
+            else if (command.equals("SEND"))
+                processSend(headers, frame.getBody());
+            else if (command.equals("SUBSCRIBE"))
+                processSubscribe(headers);
+            else if (command.equals("UNSUBSCRIBE"))
+                processUnSubscribe(headers);
+            else if (command.equals("DISCONNECT"))
+                processDisconnect();
+            else
                 // return error frame
-                errorMsg = "Unidentified command.";
+                throw new StompException("Unidentified command");
+        }
+        catch (StompException ex){
+            error = true;
+            try{
+                sendError(headers.getOrDefault("receipt", null), ex.getMessage());
+            } catch (IOException e){
+                shouldTerminate = true;
+                e.printStackTrace();
+            }
+        }
+        catch (IOException ex){
+            shouldTerminate = true;
+            ex.printStackTrace();
         }
 
-        // send receipt if there was no error
-        if (errorMsg == null && headers.containsKey("receipt"))
-            sendReceipt(headers.get("receipt"));
-        // send error if an error occured
-        else if (errorMsg != null)
-            sendError(headers.getOrDefault("receipt", null), errorMsg);
-        
+        try{
+            // send receipt if there was no error
+            if (!error && headers.containsKey("receipt"))
+                sendReceipt(headers.get("receipt"));
+        }
+        catch (IOException ex){
+            shouldTerminate = true;
+            ex.printStackTrace();
+        }
     }
 
-    private void sendReceipt(String receiptId){
+    private void sendReceipt(String receiptId) throws IOException {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("receipt-id", receiptId);
 
@@ -57,64 +74,54 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
         connections.send(connectionId, s.toString());
     }
 
-    private void sendError(String receiptId, String message){
+    private void sendError(String receiptId, String message) throws IOException{
+        
         HashMap<String, String> headers = new HashMap<>();
         if (receiptId != null)
             headers.put("receipt-id", receiptId);
         headers.put("message", message);
 
         StompFrame s = new StompFrame("ERROR", headers, "");
-
+        System.out.println("SENDING ERROR TO CLIENT");
+        System.out.println(s);
         connections.send(connectionId, s.toString());
 
         // close the connection
         shouldTerminate = true;
     }
 
-    private String processConnect(HashMap<String, String> headers) {
+    private void processConnect(HashMap<String, String> headers) throws StompException, IOException {   
         String version = headers.getOrDefault("accept-version", null);
-        if (version != "1.2")
-            return "The server supports only version 1.2";
+        if (!version.equals("1.2"))
+            throw new StompException("The server supports only version 1.2");
         if (!headers.containsKey("host"))
-            return "CONNECT command should contain a host header";
+            throw new StompException("CONNECT command should contain a host header");
         if (!headers.containsKey("login"))
-            return "CONNECT command should contain a login header";
+            throw new StompException("CONNECT command should contain a login header");
         if (!headers.containsKey("passcode"))
-            return "CONNECT command should contain a passcode header";
+            throw new StompException("CONNECT command should contain a passcode header");
     
-        switch (Data.getInstance().connect(connectionId, headers.get("login"), headers.get("passcode"))){
-            case "USER_ERR":
-                return "User already logged in";
-            case "CLIENT_ERR":
-                // TODO maybe pass to the client
-                return "The client is already logged in, logout before trying again";
-            case "PASS_ERR":
-                return "Wrong Password";
-            case "SUCCESS":
-                // create the response
-                StompFrame response = new StompFrame();
-                response.setCommand("CONNECTED");
-                response.addHeader("version", "1.2");
+        Data.getInstance().connect(connectionId, headers.get("login"), headers.get("passcode"));
 
-                // send response to client
-                connections.send(connectionId, response.toString());
+        // create the response
+        StompFrame response = new StompFrame();
+        response.setCommand("CONNECTED");
+        response.addHeader("version", "1.2");
 
-                return null;
-            default:
-                return "Unidentified error at CONNECT";
-        }
+        // send response to client
+        connections.send(connectionId, response.toString());
     }
 
-    private String processSend(HashMap<String, String> headers, String body){
+    private void processSend(HashMap<String, String> headers, String body) throws StompException, IOException {
         if (!headers.containsKey("destination"))
-            return "SEND command should contain a destination header";
+            throw new StompException("SEND command should contain a destination header");
         
         String topic = headers.get("destination");
 
         // check if the subscription exists
         Integer subscriptionId = Data.getInstance().getSubscriptionId(connectionId, topic);
         if (subscriptionId == null)
-            return "This user is not subscribed to the topic. Try subscribing before sending a message";
+            throw new StompException("This user is not subscribed to the topic. Try subscribing before sending a message");
 
         // create the stomp response
         StompFrame response = new StompFrame();
@@ -126,59 +133,27 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
 
         // send the message to all topic subscribers
         connections.send(topic, response.toString());
-
-        return null;
     }
 
-    private String processSubscribe(HashMap<String, String> headers){
+    private void processSubscribe(HashMap<String, String> headers) throws StompException{
         if (!headers.containsKey("destination"))
-            return "SUBSCRIBE command should contain a destination header";
+            throw new StompException("SUBSCRIBE command should contain a destination header");
         if (!headers.containsKey("id"))
-            return "SUBSCRIBE command should contain an id header";
+            throw new StompException("SUBSCRIBE command should contain an id header");
 
-        switch(Data.getInstance().subscribe(connectionId, headers.get("destination"), Integer.parseInt(headers.get("id")))){
-            case "CLIENT_ERR":
-                return "The client is not logged in";
-            case "EXISTING_SUB_TOPIC_ERR":
-                return "the user is already subscribed to the destination topic";
-            case "EXISTING_SUB_ID_ERR":
-                return "the user already has a subscription with this id";
-            case "SUCCESS":
-                // the output for this is only the receipt
-                return null;
-            default:
-                return "Unidentified error at SUBSCRIBE";
-        }
+        Data.getInstance().subscribe(connectionId, headers.get("destination"), Integer.parseInt(headers.get("id")));
     }
 
-    private String processUnSubscribe(HashMap<String, String> headers){
+    private void processUnSubscribe(HashMap<String, String> headers) throws StompException{
         if (!headers.containsKey("id"))
-            return "UNSUBSCRIBE command should contain an id header";
+            throw new StompException("UNSUBSCRIBE command should contain an id header");
 
-        switch(Data.getInstance().unSubscribe(connectionId, Integer.parseInt(headers.get("id")))){
-            case "CLIENT_ERR":
-                return "the client is not logged in";
-            case "SUBID_ERR":
-                return "there is no subscription with the subscription id specified";
-            case "SUCCESS":
-                // the output for this is only the receipt
-                return null;
-            default:
-                return "Unidentified error at UNSUBSCRIBE";
-        }
+        Data.getInstance().unSubscribe(connectionId, Integer.parseInt(headers.get("id")));
     }
 
-    private String processDisconnect(){
-        switch(Data.getInstance().disconnect(connectionId)){
-            case "CLIENT_ERR":
-                return "The client is not logged in";
-            case "SUCCESS":
-                connections.disconnect(connectionId);
-                shouldTerminate = true;
-                return null;
-            default:
-                return "Unidentified error at DISCONNECT";
-        }
+    private void processDisconnect() throws StompException{
+        Data.getInstance().disconnect(connectionId);
+        connections.disconnect(connectionId);
     }
 
     @Override

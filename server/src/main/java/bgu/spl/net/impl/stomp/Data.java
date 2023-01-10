@@ -71,35 +71,27 @@ public class Data {
 
     /**
      * logs the user into the server
-     * @param connectionId The connection id
-     * @param login        The username
-     * @param passcode     The password
-     * @return "USER_ERR"   iff the user is already logged in from some client
-     *          <br/><br/>
-     *         "CLIENT_ERR" iff the client is already logged in
-     *          <br/><br/>
-     *         "PASS_ERR"   iff wrong password
-     *          <br/><br/>
-     *         "SUCCESS"    iff the login was successful
+     * @param connectionId   The connection id
+     * @param login          The username
+     * @param passcode       The password
+     * @throws StompException Iff an error occured
      */
-    public synchronized String connect(int connectionId, String login, String passcode){
+    public synchronized void connect(int connectionId, String login, String passcode) throws StompException {
         // the user is logged in from some client
         if (loggedInUsers.contains(login))
-            return "USER_ERR";
+            throw new StompException("The user is already logged in from some client");
         // TODO maybe handle on client side
         // the client has some user logged in from it
         else if (loggedInClients.contains(connectionId))
-            return "CLIENT_ERR";
+            throw new StompException("The client is already logged in");
         // wrong passcode
-        else if (users.computeIfAbsent(login, l -> passcode) != passcode)
-            return "PASS_ERR";
+        else if (!users.computeIfAbsent(login, l -> passcode).equals(passcode))
+            throw new StompException("Wrong password.");
 
         loggedInUsers.put(login, connectionId);
         loggedInClients.put(connectionId, login);
 
         connectionIdsToSubscriptions.put(connectionId, new ArrayList<>());
-
-        return "SUCCESS";
     }
 
     /**
@@ -107,21 +99,15 @@ public class Data {
      * @param connectionId   The connection id to identify the client (or user)
      * @param destination    The topic that the client (or user) is requesting to subscribe to
      * @param subscriptionId The subscription id provided by the client
-     * @return "CLIENT_ERR" iff the client is not logged in
-     *          <br/><br/>
-     *          "EXISTING_SUB_TOPIC_ERR" iff the user is already subscribed to the destination topic
-     *          <br/><br/>
-     *          "EXISTING_SUB_ID_ERR" iff the user already has a subscription with this id
-     *          <br/><br/>
-     *          "SUCCESS" iff the subscription was successful
+     * @throws StompException Iff an error occured
      */
-    public String subscribe(int connectionId, String destination, int subscriptionId){
+    public void subscribe(int connectionId, String destination, int subscriptionId) throws StompException{
         if (!loggedInClients.contains(connectionId))
-            return "CLIENT_ERR";
+            throw new StompException("The client is not logged in");
         else if (isConnectionIdRegisteredToTopic(connectionId, destination))
-            return "EXISTING_SUB_TOPIC_ERR";
+            throw new StompException("The user is already subscribed to the destination topic");
         else if (isSubscriptionIdOfUser(subscriptionId, connectionId))
-            return "EXISTING_SUB_ID_ERR";
+            throw new StompException("The user already has a subscription with this id");
     
         // register the subscription at the user
         Subscription s = new Subscription(subscriptionId, connectionId, destination);
@@ -129,24 +115,18 @@ public class Data {
 
         // register the user at the topic subscribers (create one if the topic is absent)
         topicsToConnectionIds.computeIfAbsent(destination, d -> new ArrayList<>()).add(connectionId);
-
-        return "SUCCESS";
     }
 
     /**
      * Removes a subscription
      * @param connectionId   The id of the user (or client)
      * @param subscriptionId The id of the subscription to remove
-     * @return  "CLIENT_ERR" iff the client is not logged in
-     *          <br/><br/>
-     *          "SUBID_ERR" iff there is no subscription of the user with the subscription id specified
-     *          <br/><br/>
-     *          "SUCCESS" iff the subscription was removed successfully
+     * @throws StompException Iff an error occured
      */
-    public String unSubscribe(int connectionId, int subscriptionId){
+    public void unSubscribe(int connectionId, int subscriptionId) throws StompException{
         if (!loggedInClients.contains(connectionId))
-            return "CLIENT_ERR";
-            
+            throw new StompException("The client is not logged in");
+
         // search and remove the subscription from the user if found
         Subscription subToRemove = null;
         for (Subscription s : connectionIdsToSubscriptions.get(connectionId))
@@ -154,15 +134,15 @@ public class Data {
                 subToRemove = s;
                 break;
             }
-
+            
         // did not find the subscription
         if (subToRemove == null)
-            return "SUBID_ERR";
+            throw new StompException("There is no subscription of the user with the subscription id specified");
+
+        connectionIdsToSubscriptions.get(connectionId).remove(subToRemove);
 
         // remove the user from the topic subscribers
         topicsToConnectionIds.get(subToRemove.getTopicName()).remove(connectionId);
-
-        return "SUCCESS";
     }
 
     /**
@@ -172,10 +152,11 @@ public class Data {
      * @return "CLIENT_ERR" iff the client is not logged in
      *          <br/><br/>
      *         "SUCCESS" iff disconnected the user
+     * @throws StompException
      */
-    public String disconnect(int connectionId){
+    public void disconnect(int connectionId) throws StompException{
         if (!loggedInClients.contains(connectionId))
-            return "CLIENT_ERR";
+            throw new StompException("The client is not logged in");
     
         // unsubscribe from each topic
         for (Subscription s: connectionIdsToSubscriptions.get(connectionId))
@@ -186,8 +167,6 @@ public class Data {
 
         // logout the user and client
         loggedInUsers.remove(loggedInClients.remove(connectionId));
-
-        return "SUCCESS";
     }
 
     /**

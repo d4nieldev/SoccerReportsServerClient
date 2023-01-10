@@ -5,9 +5,9 @@ import java.io.IOException;
 public interface Connections<T> {
     void addClient(int connectionId, ConnectionHandler<T> handler);
 
-    void send(int connectionId, T msg);
+    void send(int connectionId, T msg) throws IOException;
 
-    void send(String channel, T msg);
+    void send(String channel, T msg) throws IOException;
 
     /**
      * logs out the client 
