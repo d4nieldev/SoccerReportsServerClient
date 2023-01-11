@@ -1,10 +1,28 @@
 #pragma once
 
-#include "../include/ConnectionHandler.h"
+#include "../include/StompFrame.h"
+#include <vector>
 
-// TODO: implement the STOMP protocol
 class StompProtocol
 {
-private:
-public:
+    private:
+        User& user;
+        unordered_map<string, unsigned int> topicToSubId;
+        unsigned int nextReceiptId;
+        unsigned int nextSubscriptionId;
+    public:
+        StompProtocol(User& user);
+        unsigned int getLastReceiptId();
+        /**
+         * process a command from the user and return the stomp frame as string
+         * @param words tokens of the line the user wrote
+        */
+        string process(vector<string> words);
+
+        /**
+         * process a frame from the server and do something
+         * @param frame the frame received from the server
+         * @return true iff the frame is not an error frame
+        */
+        bool process(StompFrame frame);
 };

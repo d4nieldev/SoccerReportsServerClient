@@ -3,22 +3,20 @@
 #include <vector>
 #include <stdexcept>
 #include <unordered_map>
+#include "InputManager.h"
 
 using std::string;
 using std::vector;
 using std::unordered_map;
 using std::pair;
 
-InputManager::InputManager(StompConnectionHandler& _ch, bool _shouldTerminate) : 
-    ch(_ch), shouldTerminate(_shouldTerminate), isLoggedIn(false), nextReceiptId(0), nextSubscriptionId(0) {}
+InputManager::InputManager(User& _user, StompProtocol& _protocol) : user(_user), protocol(_protocol) {}
 
-void InputManager::run(){
-    while(!shouldTerminate){
-        const short bufsize = 1024;
-        char buf[bufsize];
-        std::cin.getline(buf, bufsize); //blocked 
-        string line(buf);
+void InputManager::run(string loginLine){
+    string line = loginLine;
 
+    while(1){
+        // split line by spaces
         std::string delimiter = " ";
         size_t pos = 0;
         std::string token;
@@ -31,12 +29,18 @@ void InputManager::run(){
             line.erase(0, pos + delimiter.length());
         }
 
+        // process the line
         string frame;
         if (words[0] == "login" || words[0] == "join" || words[0] == "exit" || words[0] == "report" || words[0] == "logout"){
-            frame = getFrameFromLine(words);
-            if (!ch.sendFrame(frame)) {
+            frame = protocol.process(words);
+            if (!user.getConnectionHandler().sendFrame(frame)) {
                 std::cout << "Disconnected. Exiting...\n" << std::endl;
                 break;
+            }
+            if (!user.isLoggedIn()){
+                std::cout << "waiting for server to confirm connect..." << std::endl;
+                std::unique_lock<std::mutex> lck(user.mtx);
+                user.cv.wait(lck, [&]{ return user.isLoggedIn(); });
             }
         }
         else if (words[0] == "summary")
@@ -44,74 +48,18 @@ void InputManager::run(){
             continue;
         else
             std::cout << "The command given is invalid. Please try again";
+
+        if (user.isLoggedIn()){
+            // get a new line
+            const short bufsize = 1024;
+            char buf[bufsize];
+            std::cin.getline(buf, bufsize); //blocked 
+            line = buf;
+        }
     }
 }
 
-int InputManager::getFinalReceiptId(){
-    return nextReceiptId - 1;
-}
-
-string InputManager::getFrameFromLine(vector<string> words){
-    
-    
-    string command;
-    unordered_map<string,string> headers;
-    string body;
-
-    if (words[0] == "login"){
-        if (words.size() != 4)
-            throw std::invalid_argument("invalid arguments for login command");
-
-        command = "CONNECT";
-        headers.insert(pair<string,string>("accept-version", "1.2"));
-        headers.insert(pair<string,string>("host", words[1]));
-        headers.insert(pair<string,string>("login", words[2]));
-        headers.insert(pair<string,string>("passcode", words[3]));
-        body = "";
-    }
-    else if (words[0] == "join"){
-        if (words.size() != 2)
-            throw std::invalid_argument("invalid arguments for join command");
-            
-        topicToSubId.insert(pair<string,int>(words[1], nextSubscriptionId));
-
-        command = "SUBSCRIBE";
-        headers.insert(pair<string,string>("destination", words[1]));
-        headers.insert(pair<string,string>("id", ""+nextSubscriptionId++));
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
-        body = "";
-    }
-    else if (words[0] == "exit"){
-        if (words.size() != 2)
-            throw std::invalid_argument("invalid arguments for join command");
-
-        int subId = topicToSubId.at(words[1]);
-        topicToSubId.erase(words[1]);
-
-        command = "UNSUBSCRIBE";
-        headers.insert(pair<string,string>("id", ""+subId));
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
-        body = "";
-    }
-    else if (words[0] == "report") {
-        if (words.size() != 2)
-            throw std::invalid_argument("invalid arguments for join command");
-
-        // TODO handle report
-        command = "SEND";
-    }
-    else if (words[0] == "logout") {
-        if (words.size() != 1)
-            throw std::invalid_argument("invalid arguments for join command");
-
-        shouldTerminate = true;
-
-        command = "DISCONNET";
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
-        body = "";
-    }
-
-    
-    StompFrame s(command, headers, body);
-    return s.toString();
+unsigned int InputManager::getFinalReceiptId()
+{
+    return protocol.getLastReceiptId();
 }

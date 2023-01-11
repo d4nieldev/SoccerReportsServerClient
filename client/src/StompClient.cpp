@@ -10,49 +10,64 @@ using std::unordered_map;
 
 
 int main(int argc, char *argv[]) {
-	if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " host port" << std::endl << std::endl;
-        return -1;
-    }
-    std::string host = argv[1];
-    short port = atoi(argv[2]);
-    bool shouldTerminate;
+    string host;
+    int port;
+    string line;
     
-    while(1){
-        StompConnectionHandler connectionHandler(host, port);
-        if (!connectionHandler.connect()) {
-            std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
-            return 1;
+    while (1) {
+        while (1){
+            const short bufsize = 1024;
+            char buf[bufsize];
+            std::cin.getline(buf, bufsize); //blocked 
+            line = buf;
+
+            if (line.substr(0, 5) == "login") {
+                string host = line.substr(line.find(" ") + 1, line.find(":") - line.find(" ") - 1);
+                int port = stoi(line.substr(line.find(":") + 1, 4));
+                break;
+            }
+            else{
+                std::cout << "You have to login before doing any other operations";
+            }
         }
 
-        shouldTerminate = false;
+        User user(host, port);
+        bool doneReceivingMessages = false;
 
-        InputManager keyboard(connectionHandler, shouldTerminate);
-        std::thread KeyBoardReader(&InputManager::run, &keyboard);
+        StompProtocol protocol(user);
 
-        int disconnectReceiptId;
-        while (1) {
+        InputManager keyboard(user, protocol);
+        std::thread KeyBoardReader(&InputManager::run, &keyboard, line);
+
+        int disconnectReceiptId = -1;
+        while (!doneReceivingMessages) {
+            if (!user.isLoggedIn() && disconnectReceiptId == -1)
+                disconnectReceiptId = keyboard.getFinalReceiptId();
+
             std::string answer;
-            if (!connectionHandler.getFrame(answer)) {
-                std::cout << "Disconnected. Exiting...\n" << std::endl;
+            if (!user.getConnectionHandler().getFrame(answer)) {
+                printDisconnectMsg();
                 break;
             }
 
-            if (shouldTerminate)
-                disconnectReceiptId = keyboard.getFinalReceiptId();
-
             StompFrame s(answer);
-            if (s.getHeaders().find("receipt-id") != s.getHeaders().end())
-                if (stoi(s.getHeaders().at("receipt-id")) == disconnectReceiptId)
-                    break;
-        }
+            std::cout << s.toString() << std::endl;
 
-        // wait for 
-        std::string answer;
-        if (!connectionHandler.getFrame(answer)) {
-            std::cout << "Disconnected. Exiting...\n" << std::endl;
-        }
+            // process the message
+            if (!protocol.process(s))
+                // error occured, disconnect client
+                printDisconnectMsg();
+                break;
+
+            if (disconnectReceiptId != -1 && s.getHeaders().count("receipt-id") != 0)
+                if (stoi(s.getHeaders().at("receipt-id")) == disconnectReceiptId)
+                    doneReceivingMessages = true;  
+        }     
 
     }
     return 0;
+}
+
+void printDisconnectMsg() {
+    std::cout << "An error occured. Exiting...\n" << std::endl;
 }
