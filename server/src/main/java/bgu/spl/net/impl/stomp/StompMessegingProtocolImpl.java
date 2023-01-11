@@ -51,6 +51,12 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
         }
         catch (IOException ex){
             shouldTerminate = true;
+            try {
+                Data.getInstance().disconnect(connectionId);
+            } catch (StompException e) {
+                // should not happan
+                e.printStackTrace();
+            }
             ex.printStackTrace();
         }
 

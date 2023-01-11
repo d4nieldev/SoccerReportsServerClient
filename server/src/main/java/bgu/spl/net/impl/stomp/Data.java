@@ -154,7 +154,7 @@ public class Data {
      *         "SUCCESS" iff disconnected the user
      * @throws StompException
      */
-    public void disconnect(int connectionId) throws StompException{
+    public void disconnect(int connectionId) throws StompException {
         if (!loggedInClients.contains(connectionId))
             throw new StompException("The client is not logged in");
     
