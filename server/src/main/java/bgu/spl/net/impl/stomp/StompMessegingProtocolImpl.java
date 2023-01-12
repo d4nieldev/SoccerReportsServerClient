@@ -20,6 +20,9 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
 
     @Override
     public void process(String message) {
+        System.out.println("GOT A MESSAGE FROM THE CLIENT WITH CONNECTION ID " + connectionId);
+        System.out.println(message);
+
         StompFrame frame = new StompFrame(message);
         HashMap<String, String> headers = frame.getHeaders();
         boolean error = false;
@@ -45,8 +48,8 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
             try{
                 sendError(headers.getOrDefault("receipt", null), ex.getMessage());
             } catch (IOException e){
-                shouldTerminate = true;
                 e.printStackTrace();
+                shouldTerminate = true;
             }
         }
         catch (IOException ex){
@@ -88,8 +91,6 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
         headers.put("message", message);
 
         StompFrame s = new StompFrame("ERROR", headers, "");
-        System.out.println("SENDING ERROR TO CLIENT");
-        System.out.println(s);
         connections.send(connectionId, s.toString());
 
         // close the connection

@@ -22,7 +22,7 @@ public class StompFrame {
         command = lines[0];
 
         int pos = 1;
-        for (pos = 1; pos < lines.length && !lines[pos].isBlank(); pos++){
+        for (pos = 1; pos < lines.length && !lines[pos].isEmpty(); pos++){
             String[] header = lines[pos].split(":");
             headers.put(header[0], header[1]);
         }

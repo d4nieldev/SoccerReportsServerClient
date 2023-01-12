@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.lang.model.util.ElementScanner14;
 import javax.swing.event.ListDataEvent;
 
 import bgu.spl.net.srv.ConnectionHandler;
@@ -28,6 +27,8 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     @Override
     public void send(int connectionId, T msg) throws IOException {
+        System.out.println("SENDING RESPONSE TO CLIENT WITH CONNECTINO ID " + connectionId);
+        System.out.println(msg.toString());
         activeClients.get(connectionId).send(msg);
     }
 

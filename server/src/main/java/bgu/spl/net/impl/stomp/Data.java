@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Data {
-    private static Data instance = new Data();
+    private static Data instance;
     // maps between a LOGGED IN USER to the relevant connection id
     private ConcurrentHashMap<String, Integer> loggedInUsers;
 
@@ -38,6 +38,8 @@ public class Data {
     }
 
     public static Data getInstance(){
+        if (instance == null)
+            instance = new Data();
         return instance;
     }
 
@@ -78,11 +80,11 @@ public class Data {
      */
     public synchronized void connect(int connectionId, String login, String passcode) throws StompException {
         // the user is logged in from some client
-        if (loggedInUsers.contains(login))
+        if (loggedInUsers.containsKey(login))
             throw new StompException("The user is already logged in from some client");
         // TODO maybe handle on client side
         // the client has some user logged in from it
-        else if (loggedInClients.contains(connectionId))
+        else if (loggedInClients.containsKey(connectionId))
             throw new StompException("The client is already logged in");
         // wrong passcode
         else if (!users.computeIfAbsent(login, l -> passcode).equals(passcode))
@@ -90,6 +92,9 @@ public class Data {
 
         loggedInUsers.put(login, connectionId);
         loggedInClients.put(connectionId, login);
+
+        System.out.println("LOGGED IN CLIENTS:");
+        System.out.println(loggedInClients);
 
         connectionIdsToSubscriptions.put(connectionId, new ArrayList<>());
     }
@@ -102,7 +107,7 @@ public class Data {
      * @throws StompException Iff an error occured
      */
     public void subscribe(int connectionId, String destination, int subscriptionId) throws StompException{
-        if (!loggedInClients.contains(connectionId))
+        if (!loggedInClients.containsKey(connectionId))
             throw new StompException("The client is not logged in");
         else if (isConnectionIdRegisteredToTopic(connectionId, destination))
             throw new StompException("The user is already subscribed to the destination topic");
@@ -124,7 +129,7 @@ public class Data {
      * @throws StompException Iff an error occured
      */
     public void unSubscribe(int connectionId, int subscriptionId) throws StompException{
-        if (!loggedInClients.contains(connectionId))
+        if (!loggedInClients.containsKey(connectionId))
             throw new StompException("The client is not logged in");
 
         // search and remove the subscription from the user if found
@@ -155,7 +160,7 @@ public class Data {
      * @throws StompException
      */
     public void disconnect(int connectionId) throws StompException {
-        if (!loggedInClients.contains(connectionId))
+        if (!loggedInClients.containsKey(connectionId))
             throw new StompException("The client is not logged in");
     
         // unsubscribe from each topic

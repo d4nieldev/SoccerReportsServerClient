@@ -39,7 +39,6 @@ public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHa
             while (!protocol.shouldTerminate() && connected && (read = in.read()) >= 0) {
                 T nextMessage = encdec.decodeNextByte((byte) read);
                 if (nextMessage != null) {
-                    // the process method will send the message to the client or clients
                     protocol.process(nextMessage);
                 }
             }
