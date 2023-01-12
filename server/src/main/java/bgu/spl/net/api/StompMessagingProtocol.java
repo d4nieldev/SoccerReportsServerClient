@@ -1,5 +1,6 @@
 package bgu.spl.net.api;
 
+import bgu.spl.net.impl.stomp.StompException;
 import bgu.spl.net.srv.Connections;
 
 public interface StompMessagingProtocol<T> {
@@ -14,4 +15,6 @@ public interface StompMessagingProtocol<T> {
      * @return true if the connection should be terminated
      */
     boolean shouldTerminate();
+
+    int getConnectionId();
 }

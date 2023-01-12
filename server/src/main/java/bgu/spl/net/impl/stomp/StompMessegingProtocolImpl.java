@@ -167,4 +167,9 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
     public boolean shouldTerminate() {
         return shouldTerminate;
     }
+
+    @Override
+    public int getConnectionId(){
+        return this.connectionId;
+    }
 }

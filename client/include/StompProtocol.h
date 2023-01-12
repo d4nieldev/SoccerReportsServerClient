@@ -17,8 +17,9 @@ class StompProtocol
         /**
          * process a command from the user and return the stomp frame as string
          * @param words tokens of the line the user wrote
+         * @return list of messages to be sent
         */
-        string process(vector<string> words);
+        vector<string> process(vector<string> words);
 
         /**
          * process a frame from the server and do something

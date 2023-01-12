@@ -116,10 +116,15 @@ public class Data {
     
         // register the subscription at the user
         Subscription s = new Subscription(subscriptionId, connectionId, destination);
+        connectionIdsToSubscriptions.computeIfAbsent(connectionId, c -> new ArrayList<>());
         connectionIdsToSubscriptions.get(connectionId).add(s);
 
         // register the user at the topic subscribers (create one if the topic is absent)
-        topicsToConnectionIds.computeIfAbsent(destination, d -> new ArrayList<>()).add(connectionId);
+        topicsToConnectionIds.computeIfAbsent(destination, d -> new ArrayList<>());
+        topicsToConnectionIds.get(destination).add(connectionId);
+
+        System.out.println(connectionIdsToSubscriptions);
+        System.out.println(topicsToConnectionIds);
     }
 
     /**
@@ -164,14 +169,20 @@ public class Data {
             throw new StompException("The client is not logged in");
     
         // unsubscribe from each topic
+        List<Integer> subIds = new ArrayList<>();
         for (Subscription s: connectionIdsToSubscriptions.get(connectionId))
-            unSubscribe(connectionId, s.getSubscriptionId());
+            subIds.add(s.getSubscriptionId());
+        
+        for (int subId : subIds)
+            unSubscribe(connectionId, subId);
         
         // remove user
         connectionIdsToSubscriptions.remove(connectionId);
 
         // logout the user and client
         loggedInUsers.remove(loggedInClients.remove(connectionId));
+
+        System.out.println("deleted data for connection id " + connectionId);
     }
 
     /**
@@ -182,7 +193,7 @@ public class Data {
      */
     public Integer getSubscriptionId(int connectionId, String topic){
         for(Subscription s : connectionIdsToSubscriptions.get(connectionId)) {
-            if (s.getTopicName() == topic)
+            if (s.getTopicName().equals(topic))
                 return s.getSubscriptionId();
         }
         return null;

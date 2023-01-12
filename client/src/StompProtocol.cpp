@@ -13,18 +13,16 @@ unsigned int StompProtocol::getLastReceiptId()
     return nextReceiptId - 1;
 }
 
-string StompProtocol::process(vector<string> words)
+vector<string> StompProtocol::process(vector<string> words)
 {
     string command;
     unordered_map<string,string> headers;
     string body;
-    string answer;
+    vector<string> answer;
 
     if (words[0] == "login"){
         if (words.size() != 4)
             throw std::invalid_argument("invalid arguments for login command");
-
-        std::cout << "got login command" << std::endl;
 
         command = "CONNECT";
         headers.insert(pair<string,string>("accept-version", "1.2"));
@@ -34,7 +32,7 @@ string StompProtocol::process(vector<string> words)
         body = "";
 
         StompFrame s(command, headers, body);
-        answer = s.toString();
+        answer.push_back(s.toString());
     }
     else if (words[0] == "join"){
         if (words.size() != 2)
@@ -49,7 +47,7 @@ string StompProtocol::process(vector<string> words)
         body = "";
 
         StompFrame s(command, headers, body);
-        answer = s.toString();
+        answer.push_back(s.toString());
     }
     else if (words[0] == "exit"){
         if (words.size() != 2)
@@ -64,7 +62,7 @@ string StompProtocol::process(vector<string> words)
         body = "";
 
         StompFrame s(command, headers, body);
-        answer = s.toString();
+        answer.push_back(s.toString());
     }
     else if (words[0] == "report") {
         if (words.size() != 2)
@@ -94,7 +92,7 @@ string StompProtocol::process(vector<string> words)
             body += "\n" + e.get_discription();
             
             StompFrame s(command, headers, body);
-            answer += s.toString();
+            answer.push_back(s.toString());
         }
     }
     else if (words[0] == "logout") {
@@ -108,10 +106,10 @@ string StompProtocol::process(vector<string> words)
         body = "";
 
         StompFrame s(command, headers, body);
-        answer = s.toString();
+        answer.push_back(s.toString());
     }
 
-    return  answer;
+    return answer;
 }
 
 bool StompProtocol::process(StompFrame frame)

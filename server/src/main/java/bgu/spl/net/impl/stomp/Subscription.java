@@ -22,4 +22,9 @@ public class Subscription {
     public String getTopicName() {
         return this.topicName;
     }
+
+    @Override
+    public String toString() {
+        return connectionId + " " + topicName + " " + subscriptionId;
+    }
 }

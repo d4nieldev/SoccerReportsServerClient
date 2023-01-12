@@ -43,8 +43,14 @@ public class StompBlockingConnectionHandler<T> implements Runnable, ConnectionHa
                 }
             }
 
-        } catch (IOException ex) {
+    } catch (IOException ex) {
             ex.printStackTrace();
+            try {
+                Data.getInstance().disconnect(protocol.getConnectionId());
+            } catch (StompException e) {
+                System.out.println("UNEXPECTED ERROR WHILE TRYING TO DISCONNECT CLIENT THAT ALREADY DISCONNECTED");
+                e.printStackTrace();
+            }
         }
 
     }

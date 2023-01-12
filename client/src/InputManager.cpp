@@ -27,12 +27,16 @@ void InputManager::run(string loginLine){
             words.push_back(token);
 
         // process the line
-        string frame;
+        vector<string> frames;
         if (words[0] == "login" || words[0] == "join" || words[0] == "exit" || words[0] == "report" || words[0] == "logout"){
-            frame = protocol.process(words);
-            if (!user.getConnectionHandler().sendFrame(frame)) {
-                std::cout << "Disconnected. Exiting...\n" << std::endl;
-                break;
+            frames = protocol.process(words);
+            std::cout << "SENDING " << frames.size() << " FRAMES" << std::endl;
+            // split the message to frames and send one by one
+            for (string frame : frames){
+                if (!user.getConnectionHandler().sendFrame(frame)) {
+                    std::cout << "Disconnected. Exiting...\n" << std::endl;
+                    break;
+                }
             }
             if (!user.isLoggedIn()){
                 std::cout << "waiting for server to confirm connect..." << std::endl;

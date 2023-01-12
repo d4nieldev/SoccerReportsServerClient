@@ -50,7 +50,7 @@ string StompFrame::toString(){
     for (auto it = headers.begin(); it != headers.end(); ++it) 
         output += "\n" + it->first + ":" + it->second;
     
-    output += "\n\n" + body;
+    output += "\n\n" + body + "\0";
 
     return output;
 }

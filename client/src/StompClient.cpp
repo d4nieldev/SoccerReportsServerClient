@@ -62,7 +62,6 @@ int main(int argc, char *argv[]) {
 
         InputManager* keyboard = new InputManager(*user, *protocol);
         std::thread KeyBoardReader(&InputManager::run, *keyboard, line);
-
         int disconnectReceiptId = -1;
         while (!doneReceivingMessages) {
             if (!user->isLoggedIn() && disconnectReceiptId == -1)
@@ -74,21 +73,22 @@ int main(int argc, char *argv[]) {
                 disconnect(user, protocol, keyboard);
                 break;
             }
-
+            std::cout << "RECEIVED MESSAGE FROM THE SERVER" << std::endl;
+            std::cout << answer << std::endl;
             StompFrame s(answer);
-            std::cout << s.toString() << std::endl;
 
             // process the message
-            if (!protocol->process(s))
+            if (!protocol->process(s)){
                 // server error
                 disconnect(user, protocol, keyboard);
                 break;
+            }
 
             if (disconnectReceiptId != -1 && s.getHeaders().count("receipt-id") != 0)
                 if (stoi(s.getHeaders().at("receipt-id")) == disconnectReceiptId)
                     doneReceivingMessages = true;  
         }     
-
+        std::cout << "Done receiving messages." << std::endl;
         KeyBoardReader.join();
 
     }
