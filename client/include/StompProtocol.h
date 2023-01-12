@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../include/User.h"
 #include "../include/StompFrame.h"
 #include <vector>
 

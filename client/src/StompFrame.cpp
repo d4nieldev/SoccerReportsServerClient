@@ -1,8 +1,7 @@
 #include "../include/StompFrame.h"
 #include <vector>
 
-StompFrame::StompFrame(string msg){
-    headers = unordered_map<string,string>();
+StompFrame::StompFrame(string msg) {
     //maybe need to check about '\0'
     bool firstLine = true;
     size_t pos=0;
@@ -25,7 +24,7 @@ StompFrame::StompFrame(string msg){
         msg.erase(0, pos + 1);
     }
     msg.erase(0, msg.find('\n') + 1);
-    body=""+msg; //place for problem (maybe)
+    body=msg; //place for problem (maybe)
 }
 
 StompFrame::StompFrame(string _command,unordered_map <string, string> _headers, string _body ):
@@ -44,4 +43,14 @@ unordered_map<string,string> StompFrame::getHeaders(){
 
 string StompFrame::getBody(){
     return body;
+}
+
+string StompFrame::toString(){
+    string output = command;
+    for (auto it = headers.begin(); it != headers.end(); ++it) 
+        output += "\n" + it->first + ":" + it->second;
+    
+    output += "\n\n" + body;
+
+    return output;
 }

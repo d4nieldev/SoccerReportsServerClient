@@ -71,6 +71,11 @@
             "cwd": "/home/spl211/Desktop/SPL231-Assignment3-student-template-2/client/bin",
             "binaryPath": "/home/spl211/Desktop/SPL231-Assignment3-student-template-2/client/bin/StompWCIClient",
             "binaryArgs": []
+        },
+        {
+            "cwd": "/home/spl211/Desktop/SoccerReportsServerClient/client/bin",
+            "binaryPath": "/home/spl211/Desktop/SoccerReportsServerClient/client/bin/StompWCIClient",
+            "binaryArgs": []
         }
     ]
 }
