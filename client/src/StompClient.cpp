@@ -12,10 +12,12 @@ using std::stringstream;
 using std::string;
 
 
-void disconnect(User* user) {
+void disconnect(User* user, StompProtocol* protocol, InputManager* keyboard) {
     user->logout();
-    delete user;
     std::cout << "An error occured. Exiting...\n" << std::endl;
+    delete user;
+    delete protocol;
+    delete keyboard;
 }
 
 int main(int argc, char *argv[]) {
@@ -49,27 +51,27 @@ int main(int argc, char *argv[]) {
                 break;
             }
             else{
-                std::cout << "You have to login before doing any other operations";
+                std::cout << "You have to login before doing any other operations" << std::endl;
             }
         }
 
         User* user = new User(host, port, name);
         bool doneReceivingMessages = false;
 
-        StompProtocol protocol(*user);
+        StompProtocol* protocol = new StompProtocol(*user);
 
-        InputManager keyboard(*user, protocol);
-        std::thread KeyBoardReader(&InputManager::run, &keyboard, line);
+        InputManager* keyboard = new InputManager(*user, *protocol);
+        std::thread KeyBoardReader(&InputManager::run, *keyboard, line);
 
         int disconnectReceiptId = -1;
         while (!doneReceivingMessages) {
             if (!user->isLoggedIn() && disconnectReceiptId == -1)
-                disconnectReceiptId = keyboard.getFinalReceiptId();
+                disconnectReceiptId = keyboard->getFinalReceiptId();
 
             std::string answer;
             if (!user->getConnectionHandler().getFrame(answer)) {
                 // client error
-                disconnect(user);
+                disconnect(user, protocol, keyboard);
                 break;
             }
 
@@ -77,15 +79,17 @@ int main(int argc, char *argv[]) {
             std::cout << s.toString() << std::endl;
 
             // process the message
-            if (!protocol.process(s))
+            if (!protocol->process(s))
                 // server error
-                disconnect(user);
+                disconnect(user, protocol, keyboard);
                 break;
 
             if (disconnectReceiptId != -1 && s.getHeaders().count("receipt-id") != 0)
                 if (stoi(s.getHeaders().at("receipt-id")) == disconnectReceiptId)
                     doneReceivingMessages = true;  
         }     
+
+        KeyBoardReader.join();
 
     }
     return 0;

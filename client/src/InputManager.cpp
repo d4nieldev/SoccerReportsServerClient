@@ -22,7 +22,7 @@ void InputManager::run(string loginLine){
         // split line by spaces
         vector<string> words;
         string token;
-        std::istringstream tokenStream(loginLine);
+        std::istringstream tokenStream(line);
         while (std::getline(tokenStream, token, ' '))
             words.push_back(token);
 

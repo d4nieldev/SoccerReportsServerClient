@@ -21,10 +21,10 @@ string StompProtocol::process(vector<string> words)
     string answer;
 
     if (words[0] == "login"){
-        for (int i = 0; i < words.size(); i++)
-            std::cout << words[i] << std::endl;
         if (words.size() != 4)
             throw std::invalid_argument("invalid arguments for login command");
+
+        std::cout << "got login command" << std::endl;
 
         command = "CONNECT";
         headers.insert(pair<string,string>("accept-version", "1.2"));
@@ -44,8 +44,8 @@ string StompProtocol::process(vector<string> words)
 
         command = "SUBSCRIBE";
         headers.insert(pair<string,string>("destination", words[1]));
-        headers.insert(pair<string,string>("id", ""+nextSubscriptionId++));
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
+        headers.insert(pair<string,string>("id", std::to_string(nextSubscriptionId++)));
+        headers.insert(pair<string,string>("receipt", std::to_string(nextReceiptId++)));
         body = "";
 
         StompFrame s(command, headers, body);

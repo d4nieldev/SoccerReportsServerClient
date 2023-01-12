@@ -16,7 +16,7 @@ class User
 {
 private:
     bool loggedIn;
-    StompConnectionHandler ch;
+    StompConnectionHandler* ch;
     string userName;
     // maps topic to user to general, team a, and team b stats, saves stats names in lexicographic order
     unordered_map<string, unordered_map<string, vector<map<string, string>>>> topicToUserStats;
@@ -34,6 +34,7 @@ public:
     std::condition_variable cv;
 
     User(string host, int port, string userName);
+    ~User();
     StompConnectionHandler &getConnectionHandler();
     bool isLoggedIn();
     void logout();

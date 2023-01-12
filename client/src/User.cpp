@@ -4,10 +4,15 @@
 using std::pair;
 using std::stringstream;
 
-User::User(string host, int port, string _userName) : loggedIn(false), ch(host, port), userName(_userName)
+User::User(string host, int port, string _userName) : loggedIn(false), ch(new StompConnectionHandler(host, port)), userName(_userName)
 {
-    if (!ch.connect()) 
+    if (!ch->connect()) 
         throw std::runtime_error("Cannot connect to " + host + ":" + std::to_string(port));
+}
+
+User::~User()
+{
+    delete ch;
 }
 
 void User::addStat(string topic, string user, int idx, string statName, string statVal)
@@ -60,7 +65,7 @@ string User::getStats(string topic, string user, int idx)
 
 
 StompConnectionHandler& User::getConnectionHandler(){
-    return ch;
+    return *ch;
 }
 bool User::isLoggedIn()
 {
