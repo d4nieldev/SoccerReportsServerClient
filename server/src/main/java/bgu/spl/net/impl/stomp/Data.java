@@ -51,7 +51,7 @@ public class Data {
      */
     private boolean isConnectionIdRegisteredToTopic(int connectionId, String topic){
         for(Subscription s : connectionIdsToSubscriptions.get(connectionId))
-            if (s.getTopicName() == topic)
+            if (s.getTopicName().equals(topic))
                 return true;
         
         return false;
@@ -84,10 +84,11 @@ public class Data {
             throw new StompException("The user is already logged in from some client");
         // TODO maybe handle on client side
         // the client has some user logged in from it
-        else if (loggedInClients.containsKey(connectionId))
+        if (loggedInClients.containsKey(connectionId))
             throw new StompException("The client is already logged in");
         // wrong passcode
-        else if (!users.computeIfAbsent(login, l -> passcode).equals(passcode))
+        users.computeIfAbsent(login, l -> passcode);
+        if (!users.get(login).equals(passcode))
             throw new StompException("Wrong password.");
 
         loggedInUsers.put(login, connectionId);
@@ -109,9 +110,9 @@ public class Data {
     public void subscribe(int connectionId, String destination, int subscriptionId) throws StompException{
         if (!loggedInClients.containsKey(connectionId))
             throw new StompException("The client is not logged in");
-        else if (isConnectionIdRegisteredToTopic(connectionId, destination))
+        if (isConnectionIdRegisteredToTopic(connectionId, destination))
             throw new StompException("The user is already subscribed to the destination topic");
-        else if (isSubscriptionIdOfUser(subscriptionId, connectionId))
+        if (isSubscriptionIdOfUser(subscriptionId, connectionId))
             throw new StompException("The user already has a subscription with this id");
     
         // register the subscription at the user
