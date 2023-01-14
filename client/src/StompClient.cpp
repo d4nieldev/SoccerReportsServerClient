@@ -14,7 +14,7 @@ using std::string;
 
 void disconnect(User* user, StompProtocol* protocol, InputManager* keyboard) {
     user->logout();
-    std::cout << "An error occured. Exiting...\n" << std::endl;
+    std::cout << "Disconnecting..." << std::endl;
     delete user;
     delete protocol;
     delete keyboard;
@@ -56,21 +56,16 @@ int main(int argc, char *argv[]) {
         }
 
         User* user = new User(host, port, name);
-        bool doneReceivingMessages = false;
 
         StompProtocol* protocol = new StompProtocol(*user);
 
         InputManager* keyboard = new InputManager(*user, *protocol);
         std::thread KeyBoardReader(&InputManager::run, *keyboard, line);
-        int disconnectReceiptId = -1;
-        while (!doneReceivingMessages) {
-            if (!user->isLoggedIn() && disconnectReceiptId == -1)
-                disconnectReceiptId = keyboard->getFinalReceiptId();
-
+        while (1) {
+            // wait for message for the server
             std::string answer;
             if (!user->getConnectionHandler().getFrame(answer)) {
                 // client error
-                disconnect(user, protocol, keyboard);
                 break;
             }
             std::cout << "RECEIVED MESSAGE FROM THE SERVER" << std::endl;
@@ -80,14 +75,16 @@ int main(int argc, char *argv[]) {
             // process the message
             if (!protocol->process(s)){
                 // server error
-                disconnect(user, protocol, keyboard);
                 break;
             }
 
-            if (disconnectReceiptId != -1 && s.getHeaders().count("receipt-id") != 0)
-                if (stoi(s.getHeaders().at("receipt-id")) == disconnectReceiptId)
-                    doneReceivingMessages = true;  
-        }     
+            // user is not logged in, and got a receipt
+            if (!user->isLoggedIn() && s.getHeaders().count("receipt-id") != 0)
+                if (stoi(s.getHeaders().at("receipt-id")) == keyboard->getFinalReceiptId()){
+                    break;
+                }
+        }    
+        disconnect(user, protocol, keyboard); 
         std::cout << "Done receiving messages." << std::endl;
         KeyBoardReader.join();
 

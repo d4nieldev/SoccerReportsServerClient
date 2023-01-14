@@ -57,8 +57,8 @@ vector<string> StompProtocol::process(vector<string> words)
         topicToSubId.erase(words[1]);
 
         command = "UNSUBSCRIBE";
-        headers.insert(pair<string,string>("id", ""+subId));
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
+        headers.insert(pair<string,string>("id", std::to_string(subId)));
+        headers.insert(pair<string,string>("receipt", std::to_string(nextReceiptId++)));
         body = "";
 
         StompFrame s(command, headers, body);
@@ -78,7 +78,7 @@ vector<string> StompProtocol::process(vector<string> words)
             body += "\nteam a:"+e.get_team_a_name();
             body += "\nteam b:"+e.get_team_b_name();
             body += "\nevent name:"+e.get_name();
-            body += "\ntime:"+e.get_time();
+            body += "\ntime:"+std::to_string(e.get_time());
             body += "\ngeneral game updates:";
             for (auto it = e.get_game_updates().begin(); it != e.get_game_updates().end(); it++)
                 body += "\n\t" + it->first + ":" + it->second;
@@ -101,8 +101,8 @@ vector<string> StompProtocol::process(vector<string> words)
 
         user.logout();
 
-        command = "DISCONNET";
-        headers.insert(pair<string,string>("receipt", ""+nextReceiptId++));
+        command = "DISCONNECT";
+        headers.insert(pair<string,string>("receipt", std::to_string(nextReceiptId++)));
         body = "";
 
         StompFrame s(command, headers, body);

@@ -29,6 +29,7 @@ void User::addStat(string topic, string user, int idx, string statName, string s
     
     // if stat does not exist, create it
     // if stat exists - replace it
+    std::cout << "adding stat " << statName << ":" << statVal << " at game " << topic << " with index " << std::to_string(idx) << std::endl;
     topicToUserStats[topic][user][idx].insert(std::make_pair(statName, statVal));
 
 }
@@ -112,28 +113,42 @@ void User::parseMessage(string topic, string message)
         else if (key == "time")
             eventTime = val;
         else if (key == "description")
-            eventDesc = val;
-        else if (key == "general game updates")
-            while (i < result.size() && result[i][0] == '\t'){
-                string statName = result[i].substr(1, result[i].find(":"));
+            // add all thats left
+            while (i < result.size())
+                eventDesc += result[++i];
+        else if (key == "general game updates") {
+            i++;
+            while (i < result.size() && std::isspace(result[i][0])){
+                result[i].erase(0, result[i].find_first_not_of(" \t\r\n"));
+                string statName = result[i].substr(0, result[i].find(":"));
                 string statVal = result[i].substr(result[i].find(":") + 1, result[i].length() - result[i].find(":") - 1);
                 addStat(topic, user, 0, statName, statVal);
                 i++;
             }
-        else if (key == "team a game updates")
-            while (i < result.size() && result[i][0] == '\t'){
-                string statName = result[i].substr(1, result[i].find(":"));
+            i--;
+        }
+        else if (key == "team a updates") {
+            i++;
+            while (i < result.size() && std::isspace(result[i][0])){
+                result[i].erase(0, result[i].find_first_not_of(" \t\r\n"));
+                string statName = result[i].substr(0, result[i].find(":"));
                 string statVal = result[i].substr(result[i].find(":") + 1, result[i].length() - result[i].find(":") - 1);
                 addStat(topic, user, 1, statName, statVal);
                 i++;
             }
-        else if (key == "team b game updates")
-            while (i < result.size() && result[i][0] == '\t'){
-                string statName = result[i].substr(1, result[i].find(":"));
+            i--;
+        }
+        else if (key == "team b updates") {
+            i++;
+            while (i < result.size() && std::isspace(result[i][0])){
+                result[i].erase(0, result[i].find_first_not_of(" \t\r\n"));
+                string statName = result[i].substr(0, result[i].find(":"));
                 string statVal = result[i].substr(result[i].find(":") + 1, result[i].length() - result[i].find(":") - 1);
                 addStat(topic, user, 2, statName, statVal);
                 i++;
             }
+            i--;
+        }
     }
 
     addEventDetails(topic, user, eventTime, eventName, eventDesc);
@@ -169,4 +184,5 @@ string User::getGameEventReports(string topic, string user)
             output += "\n\n" + eventDetails[2] + "\n\n";
         }
     }
+    return output;
 }

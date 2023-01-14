@@ -38,7 +38,7 @@ void InputManager::run(string loginLine){
                     break;
                 }
             }
-            if (!user.isLoggedIn()){
+            if (words[0] == "login"){
                 std::cout << "waiting for server to confirm connect..." << std::endl;
                 std::unique_lock<std::mutex> lck(user.mtx);
                 user.cv.wait(lck, [this](){ return user.isLoggedIn(); });
@@ -73,7 +73,7 @@ void InputManager::run(string loginLine){
                 std::cout << "Unable to open file." << std::endl;
         }
         else
-            std::cout << "The command given is invalid. Please try again";
+            std::cout << "The command given is invalid. Please try again" << std::endl;
 
         if (user.isLoggedIn()){
             // get a new line
