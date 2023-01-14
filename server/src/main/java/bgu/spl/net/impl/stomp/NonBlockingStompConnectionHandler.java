@@ -4,6 +4,7 @@ import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
+import bgu.spl.net.srv.Connections;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -118,5 +119,9 @@ public class NonBlockingStompConnectionHandler<T> implements ConnectionHandler<T
     public void send(T msg) {
         writeQueue.add(ByteBuffer.wrap(encdec.encode(msg)));
         reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+    }
+    
+    public void startProtocol(int connectionId, Connections<T> connections){
+        protocol.start(connectionId, connections);
     }
 }

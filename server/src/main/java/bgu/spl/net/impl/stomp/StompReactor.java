@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ActorThreadPool;
+import bgu.spl.net.srv.Connections;
 import bgu.spl.net.srv.Server;
 
 import java.io.IOException;
@@ -22,6 +23,8 @@ public class StompReactor<T> implements Server<T> {
     private final Supplier<MessageEncoderDecoder<T>> readerFactory;
     private final ActorThreadPool pool;
     private Selector selector;
+    private Connections<T> connections;
+    private int nextConnectionId;
 
     private Thread selectorThread;
     private final ConcurrentLinkedQueue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
@@ -36,6 +39,8 @@ public class StompReactor<T> implements Server<T> {
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.readerFactory = readerFactory;
+        this.connections = new ConnectionsImpl<>();
+        this.nextConnectionId = 0;
     }
 
     @Override
@@ -104,6 +109,12 @@ public class StompReactor<T> implements Server<T> {
                 clientChan,
                 this);
         clientChan.register(selector, SelectionKey.OP_READ, handler);
+
+        //suiting the protocol to each ch
+        handler.startProtocol(nextConnectionId, connections);
+        connections.addClient(nextConnectionId, handler);
+
+        nextConnectionId++;
     }
 
     private void handleReadWrite(SelectionKey key) {
