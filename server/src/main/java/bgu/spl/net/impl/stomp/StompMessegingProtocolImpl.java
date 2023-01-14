@@ -16,6 +16,7 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
     public void start(int connectionId, Connections<String> connections) {
         this.connectionId = connectionId;
         this.connections = connections;
+        this.shouldTerminate = false;
     }
 
     @Override
@@ -29,6 +30,8 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
 
         try {
             String command = frame.getCommand();
+            boolean shouldDisconnectClient = false;
+
             if (command.equals("CONNECT"))
                 processConnect(headers);
             else if (command.equals("SEND"))
@@ -38,38 +41,24 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
             else if (command.equals("UNSUBSCRIBE"))
                 processUnSubscribe(headers);
             else if (command.equals("DISCONNECT"))
-                processDisconnect();
+                shouldDisconnectClient = true;
             else
                 // return error frame
                 throw new StompException("Unidentified command");
+            
+            // message was successfully processed by the server. Send back receipt
+            if (!error && headers.containsKey("receipt"))
+                sendReceipt(headers.get("receipt"));
+            
+            if (shouldDisconnectClient)
+                processDisconnect();
         }
         catch (StompException ex){
             error = true;
-            try{
-                sendError(headers.getOrDefault("receipt", null), ex.getMessage());
-            } catch (IOException e){
-                e.printStackTrace();
-                shouldTerminate = true;
-            }
+            sendError(headers.getOrDefault("receipt", null), ex.getMessage());
         }
         catch (IOException ex){
-            shouldTerminate = true;
-            try {
-                Data.getInstance().disconnect(connectionId);
-            } catch (StompException e) {
-                // should not happan
-                e.printStackTrace();
-            }
-            ex.printStackTrace();
-        }
-
-        try{
-            // send receipt if there was no error
-            if (!error && headers.containsKey("receipt"))
-                sendReceipt(headers.get("receipt"));
-        }
-        catch (IOException ex){
-            shouldTerminate = true;
+            processDisconnect();
             ex.printStackTrace();
         }
     }
@@ -83,7 +72,7 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
         connections.send(connectionId, s.toString());
     }
 
-    private void sendError(String receiptId, String message) throws IOException{
+    private void sendError(String receiptId, String message) {
         
         HashMap<String, String> headers = new HashMap<>();
         if (receiptId != null)
@@ -91,10 +80,11 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
         headers.put("message", message);
 
         StompFrame s = new StompFrame("ERROR", headers, "");
-        connections.send(connectionId, s.toString());
 
+        try { connections.send(connectionId, s.toString()); }
+        catch (IOException ex) { ex.printStackTrace(); }
         // close the connection
-        shouldTerminate = true;
+        finally { processDisconnect(); }
     }
 
     private void processConnect(HashMap<String, String> headers) throws StompException, IOException {   
@@ -149,6 +139,8 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
             throw new StompException("SUBSCRIBE command should contain an id header");
 
         Data.getInstance().subscribe(connectionId, headers.get("destination"), Integer.parseInt(headers.get("id")));
+
+        // no response needed other than receipt
     }
 
     private void processUnSubscribe(HashMap<String, String> headers) throws StompException{
@@ -156,11 +148,25 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
             throw new StompException("UNSUBSCRIBE command should contain an id header");
 
         Data.getInstance().unSubscribe(connectionId, Integer.parseInt(headers.get("id")));
+
+        // no response needed other than receipt
     }
 
-    private void processDisconnect() throws StompException{
-        Data.getInstance().disconnect(connectionId);
-        connections.disconnect(connectionId);
+    @Override
+    public void processDisconnect() {
+        // do this once
+        if (!shouldTerminate) {
+            shouldTerminate = true;
+            try { Data.getInstance().disconnect(connectionId); }
+            catch (StompException ex){
+                System.out.println("Unexpected error while trying to delete session data");
+                ex.printStackTrace();
+            }
+            connections.disconnect(connectionId);
+
+            // no response needed other than receipt
+            System.out.println("ession data with connection id " + connectionId);
+        }
     }
 
     @Override

@@ -16,7 +16,7 @@ public abstract class StompBaseServer<T> implements Server<T> {
     private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
     private Connections<T> connections;
-    private int lastConnectionId;
+    private int nextConnectionId;
 
     public StompBaseServer(
             int port,
@@ -28,7 +28,7 @@ public abstract class StompBaseServer<T> implements Server<T> {
         this.encdecFactory = encdecFactory;
 		this.sock = null;
         this.connections = new ConnectionsImpl<>();
-        this.lastConnectionId = 0;
+        this.nextConnectionId = 0;
     }
 
     @Override
@@ -47,14 +47,16 @@ public abstract class StompBaseServer<T> implements Server<T> {
                         encdecFactory.get(),
                         protocolFactory.get());
 
-                handler.startProtocol(lastConnectionId, connections);
-                connections.addClient(lastConnectionId, handler);
+                handler.startProtocol(nextConnectionId, connections);
+                connections.addClient(nextConnectionId, handler);
 
-                lastConnectionId++;
+                nextConnectionId++;
 
                 execute(handler);
             }
         } catch (IOException ex) {
+            ex.printStackTrace();
+            System.out.println("disconnected server due to unexpected error");
         }
 
         System.out.println("server closed!!!");

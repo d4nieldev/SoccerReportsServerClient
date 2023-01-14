@@ -17,4 +17,11 @@ public interface StompMessagingProtocol<T> {
     boolean shouldTerminate();
 
     int getConnectionId();
+
+    /**
+     * Disconnecting the client from the server.
+     * Deletes relevant data and closing the connection with the client
+     * @throws StompException
+     */
+    void processDisconnect() throws StompException;
 }

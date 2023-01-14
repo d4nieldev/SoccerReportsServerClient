@@ -94,9 +94,6 @@ public class Data {
         loggedInUsers.put(login, connectionId);
         loggedInClients.put(connectionId, login);
 
-        System.out.println("LOGGED IN CLIENTS:");
-        System.out.println(loggedInClients);
-
         connectionIdsToSubscriptions.put(connectionId, new ArrayList<>());
     }
 
@@ -123,9 +120,6 @@ public class Data {
         // register the user at the topic subscribers (create one if the topic is absent)
         topicsToConnectionIds.computeIfAbsent(destination, d -> new ArrayList<>());
         topicsToConnectionIds.get(destination).add(connectionId);
-
-        System.out.println(connectionIdsToSubscriptions);
-        System.out.println(topicsToConnectionIds);
     }
 
     /**
@@ -165,25 +159,22 @@ public class Data {
      *         "SUCCESS" iff disconnected the user
      * @throws StompException
      */
-    public void disconnect(int connectionId) throws StompException {
-        if (!loggedInClients.containsKey(connectionId))
-            throw new StompException("The client is not logged in");
-    
-        // unsubscribe from each topic
-        List<Integer> subIds = new ArrayList<>();
-        for (Subscription s: connectionIdsToSubscriptions.get(connectionId))
-            subIds.add(s.getSubscriptionId());
-        
-        for (int subId : subIds)
-            unSubscribe(connectionId, subId);
-        
-        // remove user
-        connectionIdsToSubscriptions.remove(connectionId);
+    public void disconnect(int connectionId) throws StompException {    
+        if (connectionIdsToSubscriptions.get(connectionId) != null) {
+            // unsubscribe from each topic
+            List<Integer> subIds = new ArrayList<>();
+            for (Subscription s: connectionIdsToSubscriptions.get(connectionId))
+                subIds.add(s.getSubscriptionId());
+            
+            for (int subId : subIds)
+                unSubscribe(connectionId, subId);
+            
+            // remove user
+            connectionIdsToSubscriptions.remove(connectionId);
 
-        // logout the user and client
-        loggedInUsers.remove(loggedInClients.remove(connectionId));
-
-        System.out.println("deleted data for connection id " + connectionId);
+            // logout the user and client
+            loggedInUsers.remove(loggedInClients.remove(connectionId));
+        }
     }
 
     /**
