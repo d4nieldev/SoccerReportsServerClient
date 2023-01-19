@@ -147,7 +147,8 @@ public class Data {
         connectionIdsToSubscriptions.get(connectionId).remove(subToRemove);
 
         // remove the user from the topic subscribers
-        topicsToConnectionIds.get(subToRemove.getTopicName()).remove(connectionId);
+        Integer connId = connectionId;
+        topicsToConnectionIds.get(subToRemove.getTopicName()).remove(connId);
     }
 
     /**
