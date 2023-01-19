@@ -29,7 +29,6 @@ void User::addStat(string topic, string user, int idx, string statName, string s
     
     // if stat does not exist, create it
     // if stat exists - replace it
-    std::cout << "adding stat " << statName << ":" << statVal << " at game " << topic << " with index " << std::to_string(idx) << std::endl;
     topicToUserStats[topic][user][idx].insert(std::make_pair(statName, statVal));
 
 }

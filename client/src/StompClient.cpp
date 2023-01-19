@@ -68,13 +68,14 @@ int main(int argc, char *argv[]) {
                 // client error
                 break;
             }
-            std::cout << "RECEIVED MESSAGE FROM THE SERVER" << std::endl;
-            std::cout << answer << std::endl;
+
             StompFrame s(answer);
 
             // process the message
             if (!protocol->process(s)){
                 // server error
+                std::cout << "Received an error from the server:" << std::endl;
+                std::cout << s.getHeaders().at("message") << std::endl;
                 break;
             }
 
@@ -85,7 +86,6 @@ int main(int argc, char *argv[]) {
                 }
         }    
         disconnect(user, protocol, keyboard); 
-        std::cout << "Done receiving messages." << std::endl;
         KeyBoardReader.join();
 
     }

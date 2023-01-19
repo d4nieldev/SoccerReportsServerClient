@@ -30,7 +30,6 @@ void InputManager::run(string loginLine){
         vector<string> frames;
         if (words[0] == "login" || words[0] == "join" || words[0] == "exit" || words[0] == "report" || words[0] == "logout"){
             frames = protocol.process(words);
-            std::cout << "SENDING " << frames.size() << " FRAMES" << std::endl;
             // split the message to frames and send one by one
             for (string frame : frames){
                 if (!user.getConnectionHandler().sendFrame(frame)) {
