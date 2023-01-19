@@ -21,9 +21,6 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
 
     @Override
     public void process(String message) {
-        System.out.println("GOT A MESSAGE FROM THE CLIENT WITH CONNECTION ID " + connectionId);
-        System.out.println(message);
-
         StompFrame frame = new StompFrame(message);
         HashMap<String, String> headers = frame.getHeaders();
         boolean error = false;
@@ -165,7 +162,6 @@ public class StompMessegingProtocolImpl implements StompMessagingProtocol<String
             connections.disconnect(connectionId);
 
             // no response needed other than receipt
-            System.out.println("ession data with connection id " + connectionId);
         }
     }
 

@@ -27,8 +27,6 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     @Override
     public void send(int connectionId, T msg) throws IOException {
-        System.out.println("SENDING RESPONSE TO CLIENT WITH CONNECTINO ID " + connectionId);
-        System.out.println(msg.toString());
         activeClients.get(connectionId).send(msg);
     }
 
