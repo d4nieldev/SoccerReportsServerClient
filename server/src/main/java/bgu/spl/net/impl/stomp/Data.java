@@ -135,7 +135,7 @@ public class Data {
         // search and remove the subscription from the user if found
         Subscription subToRemove = null;
         for (Subscription s : connectionIdsToSubscriptions.get(connectionId))
-            if (s.getConnectionId() == connectionId){
+            if (s.getConnectionId() == subscriptionId){
                 subToRemove = s;
                 break;
             }
